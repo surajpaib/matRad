@@ -14,7 +14,7 @@ sudo apt-get update --yes --force-yes
 # dependencies
 sudo apt-get install octave --yes --force-yes
 sudo apt-get install liboctave-dev --yes --force-yes
-sudo apt-get install libgdcm2-dev #for the octave dicom package
+sudo apt-get install libgdcm-dev #for the octave dicom package
 octave --no-gui --eval "pkg install -forge dicom"
 sudo apt-get install git --yes --force-yes
 export MATRAD=`pwd`
@@ -51,6 +51,9 @@ sudo ldconfig
 sudo apt-get install gnuplot-x11
 # clone repository with IpOpt Interface
 git clone https://github.com/ebertolazzi/mexIPOPT
+cd mexIPOPT
+git checkout 86cbd604ee725e95c08d90b43ef42b14cce143d0
+cd ..
 
 # compile interface
 mkoctfile --mex -ImexIPOPT/src -I/usr/local/include/coin mexIPOPT/src/ipopt.cc mexIPOPT/src/IpoptInterfaceCommon.cc -v -DMATLAB_MEXFILE -DHAVE_CSTDDEF -DIPOPT_INTERFACE_MISSING_COPY_N -Wl,--no-undefined -lipopt -lcoinmumps -lcoinlapack -lcoinblas -L/usr/local/lib -std=gnu++11
