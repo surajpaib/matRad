@@ -48,7 +48,11 @@ ct.cubeDim = metadata.cubeDim;
 ct.resolution.x = metadata.resolution(1);
 ct.resolution.y = metadata.resolution(2);
 ct.resolution.z = metadata.resolution(3);
-    
+
+ct.origin.x = metadata.imageOrigin(1);
+ct.origin.y = metadata.imageOrigin(2);
+ct.origin.z = metadata.imageOrigin(3);
+
 ct.numOfCtScen = 1;
 
 maskId = 1;

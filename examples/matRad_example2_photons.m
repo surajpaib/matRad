@@ -37,7 +37,7 @@ load('TG119.mat');
 %with some meta information describing properties of the ct cube (cube 
 % dimensions, resolution, number of CT scenarios). Please note that 
 %multiple ct cubes (e.g. 4D CT) can be stored in the cell array ct.cube{}
-display(ct);
+%display(ct);
 
 %%
 % The 'cst' cell array defines volumes of interests along with information 
@@ -47,7 +47,7 @@ display(ct);
 % the structure. The type can be set to OAR, TARGET or IGNORED. The fourth 
 % column contains a linear index vector that lists all voxels belonging to 
 % a certain VOI.
-display(cst);
+%display(cst);
 
 %%
 % The fifth column represents meta parameters for optimization. The overlap
@@ -59,7 +59,7 @@ display(cst);
 % biological treatment planning using a variable RBE. Let's output the meta 
 % optimization parameter of the target, which is stored in the thrid row:
 ixTarget = 3;
-display(cst{ixTarget,5});
+%display(cst{ixTarget,5});
 
 %%
 % The sixth column contains optimization information such as objectives and
@@ -68,7 +68,7 @@ display(cst{ixTarget,5});
 % individual structures. Here, we have defined a squared deviation 
 % objective making it 'expensive/costly' for the optimizer to over- and 
 % underdose the target structure (both are equally important). 
-display(cst{ixTarget,6});
+%display(cst{ixTarget,6});
 
 %% Treatment Plan
 % The next step is to define your treatment plan labeled as 'pln'. This 
@@ -131,7 +131,7 @@ pln.propOpt.runDAO        = 0;
 
 %%
 % and et voila our treatment plan structure is ready. Lets have a look:
-display(pln);
+%display(pln);
 
 %% Generate Beam Geometry STF
 % The steering file struct comprises the complete beam geometry along with 
