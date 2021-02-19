@@ -13,7 +13,7 @@ def main():
         "OTHER": ['/home/suraj/Repositories/data/matRad_test/BODY.nrrd']
     }
 
-    dose_calc = MatRadDoseCalcWrapper(".", "./pyrad/plan_config.yaml")
+    dose_calc = MatRadDoseCalcWrapper(".", "./projects/cbct_to_ct/plan_config.yaml")
     dose_calc("/home/suraj/Repositories/data/matRad_test/deformed.nrrd", masks)
 
 
