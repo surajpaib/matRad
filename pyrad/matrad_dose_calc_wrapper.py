@@ -15,6 +15,7 @@ class MatRadDoseCalcWrapper:
         matRad_path = Path(matRad_path).resolve()
         oc.addpath(str(matRad_path))
         oc.addpath(str(matRad_path / "pyrad"))
+        oc.addpath(str(matRad_path / "pyrad" / "utils"))
 
         self.set_config(config)
 
@@ -30,7 +31,7 @@ class MatRadDoseCalcWrapper:
         self.get_dose_map()
         
         dose_path = Path(self.ct).resolve().parent / "dose_map.nrrd"
-        self.save_dose_map(dose_path)
+        self.save_dose_map(str(dose_path))
 
     def set_config(self, config_path):
         self.config = None
@@ -45,23 +46,25 @@ class MatRadDoseCalcWrapper:
         processed_masks = {}
 
         # Add targets to all masks
-        processed_masks["masks"] = [v for v in masks["TARGET"].values()]
+        processed_masks["masks"] = [v for v in masks["TARGET"]]
         # If oars are provided, add it to masks
         if "OAR" in masks:
-            processed_masks["masks"].extend(masks["OAR"].values())
+            processed_masks["masks"].extend(masks["OAR"])
         # If masks that are neither OAR or TARGETS are provided
         if "OTHER" in masks:
-            processed_masks["masks"].extend(masks["OTHER"].values())
+            processed_masks["masks"].extend(masks["OTHER"])
 
-        processed_masks.update(masks)
+        for key in masks:
+            masks[key] = [Path(v).resolve() for v in masks[key]]
+            processed_masks[key] = {path.stem:str(path) for path in masks[key]}
+
         return processed_masks
         
     def get_dose_map(self):
         self.dose, self.metadata = oc.dose_calc_fn(self.config, self.ct, self.masks, nout=2)
 
     def save_dose_map(self, save_path):
-        print(type(self.dose))
-        print(self.dose.dtype)
+        self.dose = self.dose.transpose(2, 0, 1)
         dose_image = sitk.GetImageFromArray(self.dose)
 
         ct_image = sitk.ReadImage(self.ct)

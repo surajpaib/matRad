@@ -19,25 +19,23 @@ matRad_rc
 
 % Set mask type and optimization objectives for each mask
 for cstIndex=1:size(cst, 1)
+
     if isfield(mask_struct.TARGET, cst{cstIndex,2})
-        cst{cstIndex, 3} = 'TARGET'
+        cst{cstIndex, 3} = 'TARGET';
         cst{cstIndex,6}{end+1} = struct(DoseObjectives.matRad_SquaredDeviation);
 
     elseif isfield(mask_struct.OAR, cst{cstIndex,2})
-        cst{cstIndex, 3} = 'OAR'
+        cst{cstIndex, 3} = 'OAR';
         cst{cstIndex,6}{end+1} = struct(DoseObjectives.matRad_SquaredOverdosing);
+
+    elseif isfield(mask_struct.OTHER, cst{cstIndex,2})
+        cst{cstIndex, 3} = 'OAR';
     end
 end
 
 
 pln = get_default_plan(ct, cst);
-
-%% Override plan parameters
-for [val, key] = pln
-    if isfield(config, key)
-        val = config.(key)
-    end
-end
+pln = override_struct(pln, config);
 
 
 %% generate steering file

@@ -8,7 +8,7 @@ pln.numOfFractions  = 30;
 
 % beam geometry settings
 pln.propStf.bixelWidth      = 5; % [mm] / also corresponds to lateral spot spacing for particles
-pln.propStf.gantryAngles   = [0:72:359];
+pln.propStf.gantryAngles   = [0 90 180];
 pln.propStf.couchAngles    = zeros(1,numel(pln.propStf.gantryAngles));
 pln.propStf.numOfBeams      = numel(pln.propStf.gantryAngles);
 pln.propStf.isoCenter       = ones(pln.propStf.numOfBeams,1) * matRad_getIsoCenter(cst,ct,0);
