@@ -1,0 +1,70 @@
+import logging
+from pathlib import Path
+
+import numpy as np
+import SimpleITK as sitk
+import yaml
+from oct2py import Oct2Py, get_log
+from oct2py import octave as oc
+
+
+class MatRadDoseCalcWrapper:
+    def __init__(self, matRad_path, config):
+        self.setup_logging()
+
+        matRad_path = Path(matRad_path).resolve()
+        oc.addpath(str(matRad_path))
+        oc.addpath(str(matRad_path / "pyrad"))
+
+        self.set_config(config)
+
+    def setup_logging(self):
+        oc_logger = Oct2Py(logger=get_log())
+        oc_logger.logger = get_log('new_log')
+        oc_logger.logger.setLevel(logging.INFO)
+
+    def __call__(self, ct, masks):
+        self.ct = ct
+        self.masks = self.process_masks(masks)
+
+        self.get_dose_map()
+        
+        dose_path = Path(self.ct).resolve().parent / "dose_map.nrrd"
+        self.save_dose_map(dose_path)
+
+    def set_config(self, config_path):
+        self.config = None
+        if config_path is not None:
+            config_path = Path(config_path).resolve()
+            with open(str(config_path), "r") as fp:
+                self.config = yaml.full_load(fp)
+        
+
+    def process_masks(self, masks):
+        assert "TARGET" in masks
+        processed_masks = {}
+
+        # Add targets to all masks
+        processed_masks["masks"] = [v for v in masks["TARGET"].values()]
+        # If oars are provided, add it to masks
+        if "OAR" in masks:
+            processed_masks["masks"].extend(masks["OAR"].values())
+        # If masks that are neither OAR or TARGETS are provided
+        if "OTHER" in masks:
+            processed_masks["masks"].extend(masks["OTHER"].values())
+
+        processed_masks.update(masks)
+        return processed_masks
+        
+    def get_dose_map(self):
+        self.dose, self.metadata = oc.dose_calc_fn(self.config, self.ct, self.masks, nout=2)
+
+    def save_dose_map(self, save_path):
+        print(type(self.dose))
+        print(self.dose.dtype)
+        dose_image = sitk.GetImageFromArray(self.dose)
+
+        ct_image = sitk.ReadImage(self.ct)
+        dose_image.CopyInformation(ct_image)
+
+        sitk.WriteImage(dose_image, save_path, True)
