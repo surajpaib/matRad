@@ -24,14 +24,16 @@ class MatRadDoseCalcWrapper:
         oc_logger.logger = get_log('new_log')
         oc_logger.logger.setLevel(logging.INFO)
 
-    def __call__(self, ct, masks):
-        self.ct = ct
+    def __call__(self, ct: Path, masks: dict, save_path: Path = None):
+        self.ct = Path(ct)
         self.masks = self.process_masks(masks)
 
-        self.get_dose_map()
+        self.compute_dose_map()
         
-        dose_path = Path(self.ct).resolve().parent / "dose_map.nrrd"
-        self.save_dose_map(str(dose_path))
+        if save_path is None:
+            save_path = self.ct.resolve().parent / "dose_map.nrrd"
+            
+        self.save_dose_map(str(save_path))
 
     def set_config(self, config_path):
         self.config = None
@@ -58,16 +60,21 @@ class MatRadDoseCalcWrapper:
             masks[key] = [Path(v).resolve() for v in masks[key]]
             processed_masks[key] = {path.stem:str(path) for path in masks[key]}
 
+        processed_masks["masks"] = [str(v) for v in processed_masks["masks"]]
+
         return processed_masks
         
-    def get_dose_map(self):
-        self.dose, self.metadata = oc.dose_calc_fn(self.config, self.ct, self.masks, nout=2)
+    def compute_dose_map(self):
+        self.dose, self.metadata = oc.dose_calc_fn(self.config, str(self.ct), self.masks, nout=2)
 
-    def save_dose_map(self, save_path):
+    def get_dose_map(self):
         self.dose = self.dose.transpose(2, 0, 1)
         dose_image = sitk.GetImageFromArray(self.dose)
 
-        ct_image = sitk.ReadImage(self.ct)
+        ct_image = sitk.ReadImage(str(self.ct))
         dose_image.CopyInformation(ct_image)
+        return dose_image
 
+    def save_dose_map(self, save_path):
+        dose_image = self.get_dose_map()
         sitk.WriteImage(dose_image, save_path, True)
