@@ -15,6 +15,11 @@ class MatRadDoseCalcWrapper:
         matRad_path = Path(matRad_path).resolve()
         oc.addpath(str(matRad_path))
         oc.addpath(str(matRad_path / "pyrad"))
+
+        # Add matrad tools suchas gamma index computation
+        oc.addpath(str(matRad_path / "tools"))
+
+
         oc.addpath(str(matRad_path / "pyrad" / "utils"))
 
         self.set_config(config)
@@ -66,6 +71,11 @@ class MatRadDoseCalcWrapper:
         
     def compute_dose_map(self):
         self.dose, self.metadata = oc.dose_calc_fn(self.config, str(self.ct), self.masks, nout=2)
+
+    def compute_gamma_index(self, dose1, dose2, resolution, dose_difference=3, dta=3, n=1):
+        pass_rate = oc.matRad_gammaIndex(dose1, dose2, resolution, [dose_difference, dta], nout=1)
+
+        return None, pass_rate
 
     def get_dose_map(self):
         self.dose = self.dose.transpose(2, 0, 1)

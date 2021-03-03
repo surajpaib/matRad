@@ -1,4 +1,4 @@
-function [gammaCube,gammaPassRateCell] = matRad_gammaIndex(cube1,cube2,resolution,criteria,slice,n,localglobal,cst)
+function [gammaPassRate] = matRad_gammaIndex(cube1,cube2,resolution,criteria,slice,n,localglobal,cst)
 % gamma index calculation according to http://www.ncbi.nlm.nih.gov/pubmed/9608475
 % 
 % call
@@ -27,7 +27,7 @@ function [gammaCube,gammaPassRateCell] = matRad_gammaIndex(cube1,cube2,resolutio
 %                  considered.
 %
 % References
-%   [1]  http://www.ncbi.nlm.nih.gov/pubmed/9608475
+%   [1]  http://www.ncbi.nlm. nih.gov/pubmed/9608475
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -41,9 +41,7 @@ function [gammaCube,gammaPassRateCell] = matRad_gammaIndex(cube1,cube2,resolutio
 % LICENSE file.
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 [env, ~] = matRad_getEnvironment();
-
 % set parameters for gamma index calculation
 if exist('criteria','var')
     relDoseThreshold = criteria(1); % in [%]
@@ -188,6 +186,7 @@ if exist('cst','var')
 
     end
 end
+
 
 % visualize if applicable
 if exist('slice','var') && ~isempty(slice)

@@ -3,17 +3,16 @@ import sys
 sys.path.append('.')
 
 from pathlib import Path
+
 from pyrad.matrad_dose_calc_wrapper import MatRadDoseCalcWrapper
 
 OARS = ["BOWELAREA", "BLADDER"]
 TARGETS = ["CTVcervix", "CTV"]
 
 def main(args):
-
     dataset_path = args.dataset_path.resolve()
     output_dir = args.output_dir.resolve()
     dose_calc = MatRadDoseCalcWrapper(".", "./projects/cbct_to_ct/plan_config.yaml")
-
 
     for patient in dataset_path.iterdir():
         # Walk only through directories
@@ -56,11 +55,6 @@ def main(args):
             print("Peforming dose calculation for sCT ...")
             dose_calc(sCT, masks, save_path=patient/"sct_dose.nrrd")
             sCT_dose = dose_calc.get_dose_map()
-
-
-            print("Starting gamma calculation between CT and CBCT")
-
-
 
 if __name__ == "__main__":
     import argparse
