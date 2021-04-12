@@ -2,7 +2,7 @@ function dij = matRad_calcPhotonDose(ct,stf,pln,cst,calcDoseDirect)
 % matRad photon dose calculation wrapper
 % 
 % call
-%   dij = matRad_calcPhotonDose(ct,stf,pln,cst)
+%   dij = matRad_calcPhotonDose(ct,stf,pln,cst,calcDoseDirect)
 %
 % input
 %   ct:             ct cube
@@ -32,7 +32,7 @@ function dij = matRad_calcPhotonDose(ct,stf,pln,cst,calcDoseDirect)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-global matRad_cfg;
+
 matRad_cfg =  MatRad_Config.instance();
 
 % initialize
@@ -59,11 +59,33 @@ figureWait = waitbar(0,'calculate dose influence matrix for photons...');
 set(figureWait,'pointer','watch');
 
 % set lateral cutoff value
-lateralCutoff = matRad_cfg.propDoseCalc.defaultGeometricCutOff; % [mm]
+if ~isfield(pln,'propDoseCalc') || ~isfield(pln.propDoseCalc,'geometricCutOff')
+    pln.propDoseCalc.geometricCutOff =  matRad_cfg.propDoseCalc.defaultGeometricCutOff; % [mm]
+end
+
+lateralCutoff = pln.propDoseCalc.geometricCutOff;
+
+if ~isfield(pln,'propDoseCalc') || ~isfield(pln.propDoseCalc,'kernelCutOff')
+    pln.propDoseCalc.kernelCutOff =  matRad_cfg.propDoseCalc.defaultKernelCutOff; % [mm]
+end
+
+% set kernel cutoff value (determines how much of the kernel is used. This
+% value is separated from lateralCutOff to obtain accurate large open fields)
+kernelCutoff = pln.propDoseCalc.kernelCutOff;
+
+if kernelCutoff < lateralCutoff
+    matRad_cfg.dispWarning('Kernel Cut-Off ''%f mm'' cannot be smaller than geometric lateral cutoff ''%f mm''. Using ''%f mm''!',kernelCutoff,lateralCutoff,lateralCutoff);
+    kernelCutoff = lateralCutoff;
+end
 
 % toggle custom primary fluence on/off. if 0 we assume a homogeneous
 % primary fluence, if 1 we use measured radially symmetric data
-useCustomPrimFluenceBool = 0;
+if ~isfield(pln,'propDoseCalc') || ~isfield(pln.propDoseCalc,'useCustomPrimaryPhotonFluence')
+    useCustomPrimFluenceBool = matRad_cfg.propDoseCalc.defaultUseCustomPrimaryPhotonFluence;
+else
+    useCustomPrimFluenceBool = pln.propDoseCalc.useCustomPrimaryPhotonFluence;
+end
+
 
 % 0 if field calc is bixel based, 1 if dose calc is field based
 isFieldBasedDoseCalc = strcmp(num2str(pln.propStf.bixelWidth),'field');
@@ -85,8 +107,16 @@ fieldLimit = ceil(fieldWidth/(2*intConvResolution));
                   intConvResolution: ...
                   (fieldLimit-1)*intConvResolution);    
 
-% gaussian filter to model penumbra
-sigmaGauss = 2.123; % [mm] / see diploma thesis siggel 4.1.2
+% gaussian filter to model penumbra from (measured) machine output / see
+% diploma thesis siggel 4.1.2 -> https://github.com/e0404/matRad/wiki/Dose-influence-matrix-calculation
+if isfield(machine.data,'penumbraFWHMatIso')
+    penumbraFWHM = machine.data.penumbraFWHMatIso;
+else
+    penumbraFWHM = 5;
+    matRad_cfg.dispWarning('photon machine file does not contain measured penumbra width in machine.data.penumbraFWHMatIso. Assuming 5 mm.');
+end
+
+sigmaGauss = penumbraFWHM / sqrt(8*log(2)); % [mm] 
 % use 5 times sigma as the limits for the gaussian convolution
 gaussLimit = ceil(5*sigmaGauss/intConvResolution);
 [gaussFilterX,gaussFilterZ] = meshgrid(-gaussLimit*intConvResolution: ...
@@ -106,12 +136,16 @@ if ~isFieldBasedDoseCalc
 end
 
 % get kernel size and distances
-kernelLimit = ceil(lateralCutoff/intConvResolution);
+if kernelCutoff > machine.data.kernelPos(end)
+    kernelCutoff = machine.data.kernelPos(end);
+end
+
+kernelLimit = ceil(kernelCutoff/intConvResolution);
 [kernelX, kernelZ] = meshgrid(-kernelLimit*intConvResolution: ...
                             intConvResolution: ...
                             (kernelLimit-1)*intConvResolution);
 
-% precalculate convoluted kernel size and distances
+% precalculate convolved kernel size and distances
 kernelConvLimit = fieldLimit + gaussLimit + kernelLimit;
 [convMx_X, convMx_Z] = meshgrid(-kernelConvLimit*intConvResolution: ...
                                 intConvResolution: ...
@@ -121,7 +155,7 @@ kernelConvSize = 2*kernelConvLimit;
 
 % define an effective lateral cutoff where dose will be calculated. note
 % that storage within the influence matrix may be subject to sampling
-effectiveLateralCutoff = lateralCutoff + fieldWidth/2;
+effectiveLateralCutoff = lateralCutoff + fieldWidth/sqrt(2);
 
 counter = 0;
 matRad_cfg.dispInfo('matRad: Photon dose calculation...\n');
@@ -136,8 +170,8 @@ for i = 1:dij.numOfBeams % loop over all beams
     
     % get correct kernel for given SSD at central ray (nearest neighbor approximation)
     [~,currSSDIx] = min(abs([machine.data.kernel.SSD]-stf(i).ray(center).SSD));
-    
-    matRad_cfg.dispInfo('\t SSD = %g mm\n',num2str(machine.data.kernel(currSSDIx).SSD));
+    % Display console message.
+    matRad_cfg.dispInfo('\tSSD = %g mm ...\n',machine.data.kernel(currSSDIx).SSD);
     
     kernelPos = machine.data.kernelPos;
     kernel1 = machine.data.kernel(currSSDIx).kernel1;
@@ -153,7 +187,7 @@ for i = 1:dij.numOfBeams % loop over all beams
     if ~useCustomPrimFluenceBool && ~isFieldBasedDoseCalc
         
         % Display console message.
-        matRad_cfg.dispInfo('matRad: Uniform primary photon fluence -> pre-compute kernel convolution for SSD = %g mm ...\n',num2str(machine.data.kernel(currSSDIx).SSD));   
+        matRad_cfg.dispInfo('\tUniform primary photon fluence -> pre-compute kernel convolution...\n');   
 
         % 2D convolution of Fluence and Kernels in fourier domain
         convMx1 = real(ifft2(fft2(F,kernelConvSize,kernelConvSize).* fft2(kernel1Mx,kernelConvSize,kernelConvSize)));
@@ -193,7 +227,7 @@ for i = 1:dij.numOfBeams % loop over all beams
             % apply the primary fluence to the field
             Fx = F .* Psi;
             
-            % convolute with the gaussian
+            % convolve with the gaussian
             Fx = real( ifft2(fft2(Fx,gaussConvSize,gaussConvSize).* fft2(gaussFilter,gaussConvSize,gaussConvSize)) );
 
             % 2D convolution of Fluence and Kernels in fourier domain
@@ -274,11 +308,8 @@ for i = 1:dij.numOfBeams % loop over all beams
     end
 end
 
-try
-  % wait 0.1s for closing all waitbars
-  allWaitBarFigures = findall(0,'type','figure','tag','TMWWaitbar'); 
-  delete(allWaitBarFigures);
-  pause(0.1);
-catch
+%Close Waitbar
+if ishandle(figureWait)
+    delete(figureWait);
 end
 
