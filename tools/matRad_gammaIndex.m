@@ -1,4 +1,4 @@
-function [gammaPassRate] = matRad_gammaIndex(cube1,cube2,resolution,criteria,slice,n,localglobal,cst)
+function [gammaPassRate] = matRad_gammaIndex(cube1,cube2,resolution,criteria,localglobal,n,cst)
 % gamma index calculation according to http://www.ncbi.nlm.nih.gov/pubmed/9608475
 % 
 % call
@@ -194,17 +194,4 @@ if exist('cst','var')
 end
 
 
-% visualize if applicable
-if exist('slice','var') && ~isempty(slice)
-    figure
-    set(gcf,'Color',[1 1 1]);
-    imagesc(gammaCube(:,:,slice),[0 2])
-    myColormap = matRad_getColormap('gammaIndex');
 
-    colormap(gca,myColormap);
-    colorbar
-
-    title({[num2str(gammaPassRate,5) '% of points > ' num2str(relDoseThreshold) ...
-            '% pass gamma criterion (' num2str(relDoseThreshold) '% / ' ...
-            num2str(dist2AgreeMm) 'mm)']; ['with ' num2str(2^n-1) ' interpolation points']});
-end
